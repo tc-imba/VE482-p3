@@ -438,10 +438,14 @@ int lottery_scheduling(void) {
 			total += rmp->lottery_num;
 		}
 	}
-	if (!total) return OK;
+	if (!total) {
+		printf("lottery total: %d\n", total);
+		return OK;
+	}
 
 	/* choose a lucky ticket and give the priority */
 	ticket = rand() % total;
+	printf("lottery ticket: %d, total: %d\n", ticket, total);
 	now = 0;
 	for (i = 0, rmp = schedproc; i < NR_PROCS; ++i, ++rmp) {
 		if ((rmp->flags & IN_USE) && rmp->priority == USER_Q) {
