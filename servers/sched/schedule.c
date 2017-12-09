@@ -193,7 +193,7 @@ int do_start_scheduling(message *m_ptr)
 	rmp->endpoint     = m_ptr->SCHEDULING_ENDPOINT;
 	rmp->parent       = m_ptr->SCHEDULING_PARENT;
 	rmp->max_priority = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
-	rmp->lottery_num = 10;
+	rmp->lottery_num = 1;
 	if (rmp->max_priority >= NR_SCHED_QUEUES) {
 		return EINVAL;
 	}
@@ -320,25 +320,34 @@ int do_nice(message *m_ptr)
 
 	rmp = &schedproc[proc_nr_n];
 	new_q = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
-	if (new_q >= NR_SCHED_QUEUES) {
-		return EINVAL;
-	}
 
-	/* Store old values, in case we need to roll back the changes */
-	old_q     = rmp->priority;
-	old_max_q = rmp->max_priority;
+    switch (schedule_type) {
+    case SCHEDULE_DEFAULT:
+        if (new_q >= NR_SCHED_QUEUES) {
+            return EINVAL;
+        }
 
-	/* Update the proc entry and reschedule the process */
-	rmp->max_priority = rmp->priority = new_q;
+        /* Store old values, in case we need to roll back the changes */
+        old_q     = rmp->priority;
+        old_max_q = rmp->max_priority;
 
-	if ((rv = schedule_process_local(rmp)) != OK) {
-		/* Something went wrong when rescheduling the process, roll
-		 * back the changes to proc struct */
-		rmp->priority     = old_q;
-		rmp->max_priority = old_max_q;
-	}
+        /* Update the proc entry and reschedule the process */
+        rmp->max_priority = rmp->priority = new_q;
 
-	return rv;
+        if ((rv = schedule_process_local(rmp)) != OK) {
+            /* Something went wrong when rescheduling the process, roll
+             * back the changes to proc struct */
+            rmp->priority     = old_q;
+            rmp->max_priority = old_max_q;
+        }
+
+        return rv;
+    case SCHEDULE_LOTTERY:
+        rmp->lottery_num = new_q;
+        return lottery_scheduling();
+    default:
+        assert(0);
+    }
 }
 
 /*===========================================================================*
