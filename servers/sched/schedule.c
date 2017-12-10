@@ -400,7 +400,7 @@ void init_scheduling(void)
 	balance_timeout = BALANCE_TIMEOUT * sys_hz();
 	init_timer(&sched_timer);
 	set_timer(&sched_timer, balance_timeout, balance_queues, 0);
-	srand(time(0));
+	srandom(time(0));
 }
 
 /*===========================================================================*
@@ -449,7 +449,7 @@ int lottery_scheduling(void) {
 	}
 
 	/* choose a lucky ticket and give the priority */
-	ticket = rand() % total;
+	ticket = random() % total;
 	printf("lottery ticket: %d, total: %d\n", ticket, total);
 	now = 0;
 	for (i = 0, rmp = schedproc; i < NR_PROCS; ++i, ++rmp) {
