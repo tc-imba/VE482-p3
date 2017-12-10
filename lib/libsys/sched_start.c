@@ -63,7 +63,6 @@ int sched_start(endpoint_t scheduler_e,
 
 	assert(_ENDPOINT_P(schedulee_e) >= 0);
 	assert(_ENDPOINT_P(parent_e) >= 0);
-	printf("maxprio: %d", maxprio);
 	assert(maxprio >= 0);
 	assert(maxprio < NR_SCHED_QUEUES);
 	assert(quantum > 0);
