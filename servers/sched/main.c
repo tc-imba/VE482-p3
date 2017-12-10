@@ -46,6 +46,8 @@ int main(void)
 		who_e = m_in.m_source;	/* who sent the message */
 		call_nr = m_in.m_type;	/* system call number */
 
+		printf("Sched: %d", call_nr);
+
 		/* Check for system notifications first. Special cases. */
 		if (is_ipc_notify(ipc_status)) {
 			switch(who_e) {
@@ -58,7 +60,7 @@ int main(void)
 
 			goto sendreply;
 		}
-        printf("Sched: %d", call_nr);
+
 		switch(call_nr) {
 		case SCHEDULING_INHERIT:
 		case SCHEDULING_START:
