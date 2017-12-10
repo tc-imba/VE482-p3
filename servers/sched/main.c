@@ -58,7 +58,7 @@ int main(void)
 
 			goto sendreply;
 		}
-        //printf("Sched: %d", call_nr);
+        printf("Sched: %d", call_nr);
 		switch(call_nr) {
 		case SCHEDULING_INHERIT:
 		case SCHEDULING_START:
