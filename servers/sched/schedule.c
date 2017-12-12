@@ -344,7 +344,7 @@ void init_scheduling(void)
 	balance_timeout = BALANCE_TIMEOUT * sys_hz();
 	init_timer(&sched_timer);
 	set_timer(&sched_timer, balance_timeout, balance_queues, 0);
-    srandom(time(0));
+    //srandom(time(0));
 }
 
 /*===========================================================================*
