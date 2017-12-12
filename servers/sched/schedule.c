@@ -109,6 +109,7 @@ int do_noquantum(message *m_ptr)
 
 	switch (schedule_type) {
 	case SCHEDULE_DEFAULT:
+	case SCHEDULE_LOTTERY:
 		if (rmp->priority < MIN_USER_Q) {
 			rmp->priority += 1; /* lower priority */
 		}
@@ -116,7 +117,6 @@ int do_noquantum(message *m_ptr)
 			return rv;
 		}
 		return OK;
-	case SCHEDULE_LOTTERY:
 		if(rmp->priority >= MAX_USER_Q && rmp->priority <= MIN_USER_Q)
 		{
 			rmp->priority = MIN_USER_Q;
@@ -231,6 +231,7 @@ int do_start_scheduling(message *m_ptr)
 		 * from the parent */
         switch (schedule_type) {
         case SCHEDULE_DEFAULT:
+		case SCHEDULE_LOTTERY:
             rmp->priority = rmp->max_priority;
             break;
         case SCHEDULE_LOTTERY:
@@ -251,6 +252,7 @@ int do_start_scheduling(message *m_ptr)
 			return rv;
         switch (schedule_type) {
         case SCHEDULE_DEFAULT:
+		case SCHEDULE_LOTTERY:
             rmp->priority = schedproc[parent_nr_n].priority;
             break;
         case SCHEDULE_LOTTERY:
