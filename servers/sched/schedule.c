@@ -59,7 +59,7 @@ static void pick_cpu(struct schedproc * proc)
 #ifdef CONFIG_SMP
 	unsigned cpu, c;
 	unsigned cpu_load = (unsigned) -1;
-	
+
 	if (machine.processors_count == 1) {
 		proc->cpu = machine.bsp_id;
 		return;
@@ -124,6 +124,7 @@ int do_noquantum(message *m_ptr)
 		if ((rv = schedule_process_local(rmp)) != OK) {
 			return rv;
 		}
+		return OK;
 		return lottery_scheduling();
 	default:
 		assert(0);
@@ -160,6 +161,7 @@ int do_stop_scheduling(message *m_ptr)
 	case SCHEDULE_DEFAULT:
 		return OK;
 	case SCHEDULE_LOTTERY:
+		return OK;
 		return lottery_scheduling();
 	default:
 		assert(0);
@@ -177,7 +179,7 @@ int do_start_scheduling(message *m_ptr)
 	printf("start scheduling\n");
 
 	/* we can handle two kinds of messages here */
-	assert(m_ptr->m_type == SCHEDULING_START || 
+	assert(m_ptr->m_type == SCHEDULING_START ||
 		m_ptr->m_type == SCHEDULING_INHERIT);
 
 	/* check who can send you requests */
@@ -220,12 +222,12 @@ int do_start_scheduling(message *m_ptr)
 		/* FIXME set the cpu mask */
 #endif
 	}
-	
+
 	switch (m_ptr->m_type) {
 
 	case SCHEDULING_START:
 		/* We have a special case here for system processes, for which
-		 * quanum and priority are set explicitly rather than inherited 
+		 * quanum and priority are set explicitly rather than inherited
 		 * from the parent */
         switch (schedule_type) {
         case SCHEDULE_DEFAULT:
@@ -239,7 +241,7 @@ int do_start_scheduling(message *m_ptr)
         }
 		rmp->time_slice = (unsigned) m_ptr->SCHEDULING_QUANTUM;
 		break;
-		
+
 	case SCHEDULING_INHERIT:
 		/* Inherit current priority and time slice from parent. Since there
 		 * is currently only one scheduler scheduling the whole system, this
@@ -259,8 +261,8 @@ int do_start_scheduling(message *m_ptr)
         }
 		rmp->time_slice = schedproc[parent_nr_n].time_slice;
 		break;
-		
-	default: 
+
+	default:
 		/* not reachable */
 		assert(0);
 	}
@@ -325,6 +327,7 @@ int do_nice(message *m_ptr)
 
     switch (schedule_type) {
     case SCHEDULE_DEFAULT:
+	case SCHEDULE_LOTTERY:
         if (new_q >= NR_SCHED_QUEUES) {
             return EINVAL;
         }
@@ -344,10 +347,10 @@ int do_nice(message *m_ptr)
         }
 
         return rv;
-    case SCHEDULE_LOTTERY:
-        rmp->lottery_num = new_q;
-		printf("nice set a process to %d tickets\n", new_q);
-        return lottery_scheduling();
+    // case SCHEDULE_LOTTERY:
+    //     rmp->lottery_num = new_q;
+	// 	printf("nice set a process to %d tickets\n", new_q);
+    //     return lottery_scheduling();
     default:
         assert(0);
     }
@@ -462,4 +465,3 @@ int lottery_scheduling(void) {
 	/* should be not reachable */
 	return OK;
 }
-
