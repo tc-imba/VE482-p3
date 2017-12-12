@@ -16,14 +16,14 @@
 #include <machine/archtypes.h>
 #include "kernel/proc.h" /* for queue constants */
 
+#define SCHEDULE_DEFAULT 0
+#define SCHEDULE_LOTTERY 1
+static int schedule_type = SCHEDULE_LOTTERY;
+
 static timer_t sched_timer;
 static unsigned balance_timeout;
 
 #define BALANCE_TIMEOUT	5 /* how often to balance queues in seconds */
-
-#define SCHEDULE_DEFAULT 0
-#define SCHEDULE_LOTTERY 1
-static int schedule_type = SCHEDULE_LOTTERY;
 
 static int schedule_process(struct schedproc * rmp, unsigned flags);
 static void balance_queues(struct timer *tp);
@@ -97,6 +97,7 @@ int do_noquantum(message *m_ptr)
 {
 	register struct schedproc *rmp;
 	int rv, proc_nr_n;
+	printf("start noquantum\n");
 
 	if (sched_isokendpt(m_ptr->m_source, &proc_nr_n) != OK) {
 		printf("SCHED: WARNING: got an invalid endpoint in OOQ msg %u.\n",
@@ -105,14 +106,28 @@ int do_noquantum(message *m_ptr)
 	}
 
 	rmp = &schedproc[proc_nr_n];
-	if (rmp->priority < MIN_USER_Q) {
-		rmp->priority += 1; /* lower priority */
-	}
 
-	if ((rv = schedule_process_local(rmp)) != OK) {
-		return rv;
+	switch (schedule_type) {
+	case SCHEDULE_DEFAULT:
+		if (rmp->priority < MIN_USER_Q) {
+			rmp->priority += 1; /* lower priority */
+		}
+		if ((rv = schedule_process_local(rmp)) != OK) {
+			return rv;
+		}
+		return OK;
+	case SCHEDULE_LOTTERY:
+		if(rmp->priority >= MAX_USER_Q && rmp->priority <= MIN_USER_Q)
+		{
+			rmp->priority = MIN_USER_Q;
+		}
+		if ((rv = schedule_process_local(rmp)) != OK) {
+			return rv;
+		}
+		return lottery_scheduling();
+	default:
+		assert(0);
 	}
-	return OK;
 }
 
 /*===========================================================================*
@@ -122,6 +137,8 @@ int do_stop_scheduling(message *m_ptr)
 {
 	register struct schedproc *rmp;
 	int proc_nr_n;
+
+	printf("stop scheduling\n");
 
 	/* check who can send you requests */
 	if (!accept_message(m_ptr))
@@ -139,7 +156,14 @@ int do_stop_scheduling(message *m_ptr)
 #endif
 	rmp->flags = 0; /*&= ~IN_USE;*/
 
-	return OK;
+	switch (schedule_type) {
+	case SCHEDULE_DEFAULT:
+		return OK;
+	case SCHEDULE_LOTTERY:
+		return lottery_scheduling();
+	default:
+		assert(0);
+	}
 }
 
 /*===========================================================================*
@@ -149,6 +173,8 @@ int do_start_scheduling(message *m_ptr)
 {
 	register struct schedproc *rmp;
 	int rv, proc_nr_n, parent_nr_n;
+
+	printf("start scheduling\n");
 
 	/* we can handle two kinds of messages here */
 	assert(m_ptr->m_type == SCHEDULING_START ||
@@ -169,7 +195,7 @@ int do_start_scheduling(message *m_ptr)
 	rmp->endpoint     = m_ptr->SCHEDULING_ENDPOINT;
 	rmp->parent       = m_ptr->SCHEDULING_PARENT;
 	rmp->max_priority = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
-    rmp->lottery_num = 1;
+	rmp->lottery_num = 1;
 	if (rmp->max_priority >= NR_SCHED_QUEUES) {
 		return EINVAL;
 	}
@@ -201,7 +227,16 @@ int do_start_scheduling(message *m_ptr)
 		/* We have a special case here for system processes, for which
 		 * quanum and priority are set explicitly rather than inherited
 		 * from the parent */
-		rmp->priority   = rmp->max_priority;
+        switch (schedule_type) {
+        case SCHEDULE_DEFAULT:
+            rmp->priority = rmp->max_priority;
+            break;
+        case SCHEDULE_LOTTERY:
+            rmp->priority = MIN_USER_Q;
+            break;
+        default:
+            assert(0);
+        }
 		rmp->time_slice = (unsigned) m_ptr->SCHEDULING_QUANTUM;
 		break;
 
@@ -212,8 +247,16 @@ int do_start_scheduling(message *m_ptr)
 		if ((rv = sched_isokendpt(m_ptr->SCHEDULING_PARENT,
 				&parent_nr_n)) != OK)
 			return rv;
-
-		rmp->priority = schedproc[parent_nr_n].priority;
+        switch (schedule_type) {
+        case SCHEDULE_DEFAULT:
+            rmp->priority = schedproc[parent_nr_n].priority;
+            break;
+        case SCHEDULE_LOTTERY:
+            rmp->priority = MIN_USER_Q;
+            break;
+        default:
+            assert(0);
+        }
 		rmp->time_slice = schedproc[parent_nr_n].time_slice;
 		break;
 
@@ -279,25 +322,35 @@ int do_nice(message *m_ptr)
 
 	rmp = &schedproc[proc_nr_n];
 	new_q = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
-	if (new_q >= NR_SCHED_QUEUES) {
-		return EINVAL;
-	}
 
-	/* Store old values, in case we need to roll back the changes */
-	old_q     = rmp->priority;
-	old_max_q = rmp->max_priority;
+    switch (schedule_type) {
+    case SCHEDULE_DEFAULT:
+        if (new_q >= NR_SCHED_QUEUES) {
+            return EINVAL;
+        }
 
-	/* Update the proc entry and reschedule the process */
-	rmp->max_priority = rmp->priority = new_q;
+        /* Store old values, in case we need to roll back the changes */
+        old_q     = rmp->priority;
+        old_max_q = rmp->max_priority;
 
-	if ((rv = schedule_process_local(rmp)) != OK) {
-		/* Something went wrong when rescheduling the process, roll
-		 * back the changes to proc struct */
-		rmp->priority     = old_q;
-		rmp->max_priority = old_max_q;
-	}
+        /* Update the proc entry and reschedule the process */
+        rmp->max_priority = rmp->priority = new_q;
 
-	return rv;
+        if ((rv = schedule_process_local(rmp)) != OK) {
+            /* Something went wrong when rescheduling the process, roll
+             * back the changes to proc struct */
+            rmp->priority     = old_q;
+            rmp->max_priority = old_max_q;
+        }
+
+        return rv;
+    case SCHEDULE_LOTTERY:
+        rmp->lottery_num = new_q;
+		printf("nice set a process to %d tickets\n", new_q);
+        return lottery_scheduling();
+    default:
+        assert(0);
+    }
 }
 
 /*===========================================================================*
@@ -344,7 +397,7 @@ void init_scheduling(void)
 	balance_timeout = BALANCE_TIMEOUT * sys_hz();
 	init_timer(&sched_timer);
 	set_timer(&sched_timer, balance_timeout, balance_queues, 0);
-    //srandom(time(0));
+	//srandom(time(0));
 }
 
 /*===========================================================================*
