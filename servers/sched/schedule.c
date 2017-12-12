@@ -119,10 +119,7 @@ int do_noquantum(message *m_ptr)
 	case SCHEDULE_LOTTERY:
 		if(rmp->priority >= MAX_USER_Q && rmp->priority <= MIN_USER_Q)
 		{
-			rmp->priority = USER_Q;
-		}
-		else if (rmp->priority < MAX_USER_Q - 1) {
-			rmp->priority += 1; /* lower priority */
+			rmp->priority = MIN_USER_Q;
 		}
 		if ((rv = schedule_process_local(rmp)) != OK) {
 			return rv;
@@ -235,7 +232,7 @@ int do_start_scheduling(message *m_ptr)
             rmp->priority = rmp->max_priority;
             break;
         case SCHEDULE_LOTTERY:
-            rmp->priority = USER_Q;
+            rmp->priority = MIN_USER_Q;
             break;
         default:
             assert(0);
@@ -255,7 +252,7 @@ int do_start_scheduling(message *m_ptr)
             rmp->priority = schedproc[parent_nr_n].priority;
             break;
         case SCHEDULE_LOTTERY:
-            rmp->priority = USER_Q;
+            rmp->priority = MIN_USER_Q;
             break;
         default:
             assert(0);
@@ -439,7 +436,7 @@ int lottery_scheduling(void) {
 	/* get total tickets available now */
 	total = 0;
 	for (i = 0, rmp = schedproc; i < NR_PROCS; ++i, ++rmp) {
-		if ((rmp->flags & IN_USE) && rmp->priority == USER_Q) {
+		if ((rmp->flags & IN_USE) && rmp->priority == MIN_USER_Q) {
 			total += rmp->lottery_num;
 		}
 	}
@@ -453,9 +450,9 @@ int lottery_scheduling(void) {
 	printf("lottery ticket: %d, total: %d\n", ticket, total);
 	now = 0;
 	for (i = 0, rmp = schedproc; i < NR_PROCS; ++i, ++rmp) {
-		if ((rmp->flags & IN_USE) && rmp->priority == USER_Q) {
+		if ((rmp->flags & IN_USE) && rmp->priority == MIN_USER_Q) {
 			if ((now += rmp->lottery_num) >= ticket) {
-				rmp->priority = MAX_USER_Q;
+				rmp->priority = MIN_USER_Q;
 				schedule_process_local(rmp);
 				return OK;
 			}
