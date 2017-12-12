@@ -9,6 +9,8 @@
  */
 #include "sched.h"
 #include "schedproc.h"
+#include <time.h>
+#include <stdlib.h>
 #include <assert.h>
 #include <minix/com.h>
 #include <machine/archtypes.h>
@@ -18,6 +20,10 @@ static timer_t sched_timer;
 static unsigned balance_timeout;
 
 #define BALANCE_TIMEOUT	5 /* how often to balance queues in seconds */
+
+#define SCHEDULE_DEFAULT 0
+#define SCHEDULE_LOTTERY 1
+static int schedule_type = SCHEDULE_LOTTERY;
 
 static int schedule_process(struct schedproc * rmp, unsigned flags);
 static void balance_queues(struct timer *tp);
@@ -163,6 +169,7 @@ int do_start_scheduling(message *m_ptr)
 	rmp->endpoint     = m_ptr->SCHEDULING_ENDPOINT;
 	rmp->parent       = m_ptr->SCHEDULING_PARENT;
 	rmp->max_priority = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
+    rmp->lottery_num = 1;
 	if (rmp->max_priority >= NR_SCHED_QUEUES) {
 		return EINVAL;
 	}
@@ -337,6 +344,7 @@ void init_scheduling(void)
 	balance_timeout = BALANCE_TIMEOUT * sys_hz();
 	init_timer(&sched_timer);
 	set_timer(&sched_timer, balance_timeout, balance_queues, 0);
+    srandom(time(0));
 }
 
 /*===========================================================================*
@@ -363,4 +371,41 @@ static void balance_queues(struct timer *tp)
 	}
 
 	set_timer(&sched_timer, balance_timeout, balance_queues, 0);
+}
+
+int lottery_scheduling(void) {
+	struct schedproc *rmp;
+	unsigned total;
+	unsigned ticket;
+	unsigned now;
+	int i;
+
+	/* get total tickets available now */
+	total = 0;
+	for (i = 0, rmp = schedproc; i < NR_PROCS; ++i, ++rmp) {
+		if ((rmp->flags & IN_USE) && rmp->priority == MIN_USER_Q) {
+			total += rmp->lottery_num;
+		}
+	}
+	if (!total) {
+		printf("lottery total: %d\n", total);
+		return OK;
+	}
+
+	/* choose a lucky ticket and give the priority */
+	ticket = random() % total;
+	printf("lottery ticket: %d, total: %d\n", ticket, total);
+	now = 0;
+	for (i = 0, rmp = schedproc; i < NR_PROCS; ++i, ++rmp) {
+		if ((rmp->flags & IN_USE) && rmp->priority == MIN_USER_Q) {
+			if ((now += rmp->lottery_num) >= ticket) {
+				rmp->priority = MIN_USER_Q;
+				schedule_process_local(rmp);
+				return OK;
+			}
+		}
+	}
+
+	/* should be not reachable */
+	return OK;
 }
