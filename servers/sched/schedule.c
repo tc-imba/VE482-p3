@@ -234,9 +234,9 @@ int do_start_scheduling(message *m_ptr)
 		case SCHEDULE_LOTTERY:
             rmp->priority = rmp->max_priority;
             break;
-        case SCHEDULE_LOTTERY:
-            rmp->priority = MIN_USER_Q;
-            break;
+        //case SCHEDULE_LOTTERY:
+            //rmp->priority = MIN_USER_Q;
+            //break;
         default:
             assert(0);
         }
@@ -255,9 +255,9 @@ int do_start_scheduling(message *m_ptr)
 		case SCHEDULE_LOTTERY:
             rmp->priority = schedproc[parent_nr_n].priority;
             break;
-        case SCHEDULE_LOTTERY:
-            rmp->priority = MIN_USER_Q;
-            break;
+        //case SCHEDULE_LOTTERY:
+            //rmp->priority = MIN_USER_Q;
+            //break;
         default:
             assert(0);
         }
