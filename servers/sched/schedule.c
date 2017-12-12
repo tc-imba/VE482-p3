@@ -97,7 +97,7 @@ int do_noquantum(message *m_ptr)
 {
 	register struct schedproc *rmp;
 	int rv, proc_nr_n;
-	printf("start noquantum\n");
+	//printf("start noquantum\n");
 
 	if (sched_isokendpt(m_ptr->m_source, &proc_nr_n) != OK) {
 		printf("SCHED: WARNING: got an invalid endpoint in OOQ msg %u.\n",
@@ -138,7 +138,7 @@ int do_stop_scheduling(message *m_ptr)
 	register struct schedproc *rmp;
 	int proc_nr_n;
 
-	printf("stop scheduling\n");
+	//printf("stop scheduling\n");
 
 	/* check who can send you requests */
 	if (!accept_message(m_ptr))
@@ -174,7 +174,7 @@ int do_start_scheduling(message *m_ptr)
 	register struct schedproc *rmp;
 	int rv, proc_nr_n, parent_nr_n;
 
-	printf("start scheduling\n");
+	//printf("start scheduling\n");
 
 	/* we can handle two kinds of messages here */
 	assert(m_ptr->m_type == SCHEDULING_START ||
