@@ -114,4 +114,4 @@
 				 */
 #define MAPDRIVER      122     /* to VFS, map a device */
 
-#define SWITCH_SCHEDULE 123
+#define SWITCH_SCHEDULE 114
