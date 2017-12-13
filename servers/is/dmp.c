@@ -125,9 +125,3 @@ void mapping_dmp(void)
       printf(" %10s.  %s\n", key_name(hooks[h].key), hooks[h].name);
   printf("\n");
 }
-
-void schedule_switch(void)
-{
-
-}
-

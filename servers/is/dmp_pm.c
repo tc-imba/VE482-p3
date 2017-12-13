@@ -104,4 +104,10 @@ void sigaction_dmp()
   prev_i = i;
 }
 
+void schedule_switch(void)
+{
+	printf("Shift+F7\n");
+	message m;
+	_taskcall(mproc->mp_scheduler, SCHEDULING_SWITCH_TYPE, &m);
+}
 
