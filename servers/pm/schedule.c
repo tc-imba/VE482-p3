@@ -110,3 +110,9 @@ int sched_nice(struct mproc *rmp, int nice)
 
 	return (OK);
 }
+
+void do_switch_schedule(void)
+{
+	message m;
+	_taskcall(mproc->mp_scheduler, SCHEDULING_SWITCH_TYPE, &m);
+}

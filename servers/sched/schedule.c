@@ -18,6 +18,7 @@
 
 #define SCHEDULE_DEFAULT 0
 #define SCHEDULE_LOTTERY 1
+#define SCHEDULE_EDF     2
 static int schedule_type = SCHEDULE_LOTTERY;
 
 static timer_t sched_timer;
@@ -426,7 +427,8 @@ static void balance_queues(struct timer *tp)
 	set_timer(&sched_timer, balance_timeout, balance_queues, 0);
 }
 
-int lottery_scheduling(void) {
+int lottery_scheduling(void)
+{
 	struct schedproc *rmp;
 	unsigned total;
 	unsigned ticket;
@@ -461,4 +463,24 @@ int lottery_scheduling(void) {
 
 	/* should be not reachable */
 	return OK;
+}
+
+void switch_schedule_type(void)
+{
+    switch (schedule_type) {
+    case SCHEDULE_DEFAULT:
+        schedule_type = SCHEDULE_LOTTERY;
+        printf("Schedule type changed to lottery mode\n");
+        break;
+    case SCHEDULE_LOTTERY:
+        schedule_type = SCHEDULE_EDF;
+        printf("Schedule type changed to EDF mode\n");
+        break;
+    case SCHEDULE_EDF:
+        schedule_type = SCHEDULE_DEFAULT;
+        printf("Schedule type changed to default mode\n");
+        break;
+    default:
+        assert(0);
+    }
 }

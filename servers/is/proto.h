@@ -8,6 +8,7 @@ void map_unmap_fkeys(int map);
 int do_fkey_pressed(message *m);
 void mapping_dmp(void);
 void vm_dmp(void);
+void schedule_switch(void);
 
 /* dmp_kernel.c */
 void proctab_dmp(void);
