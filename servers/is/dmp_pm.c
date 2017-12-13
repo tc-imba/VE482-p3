@@ -107,18 +107,7 @@ void sigaction_dmp()
 void schedule_switch(void)
 {
 	message m;
-	int i;
-	struct mproc *trmp;
-	endpoint_t parent_e;
-	int proc_nr, s;
-
 	printf("Shift+F7\n");
-
-	for (proc_nr=0, trmp=mproc; proc_nr < NR_PROCS; proc_nr++, trmp++) {
-		if (trmp->mp_scheduler) {
-			printf("%d %p\n", proc_nr, trmp->mp_scheduler);
-		}
-	}
-	_taskcall(mproc->mp_scheduler, SCHEDULING_SWITCH_TYPE, &m);
+	_taskcall(SCHED_PROC_NR, SCHEDULING_SWITCH_TYPE, &m);
 }
 
