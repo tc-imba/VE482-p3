@@ -416,13 +416,22 @@ static void balance_queues(struct timer *tp)
 	struct schedproc *rmp;
 	int proc_nr;
 
-	for (proc_nr=0, rmp=schedproc; proc_nr < NR_PROCS; proc_nr++, rmp++) {
-		if (rmp->flags & IN_USE) {
-			if (rmp->priority > rmp->max_priority) {
-				rmp->priority -= 1; /* increase priority */
-				schedule_process_local(rmp);
+	switch (schedule_type) {
+	case SCHEDULE_DEFAULT:
+		for (proc_nr=0, rmp=schedproc; proc_nr < NR_PROCS; proc_nr++, rmp++) {
+			if (rmp->flags & IN_USE) {
+				if (rmp->priority > rmp->max_priority) {
+					rmp->priority -= 1; /* increase priority */
+					schedule_process_local(rmp);
+				}
 			}
 		}
+		break;
+	case SCHEDULE_LOTTERY:
+	case SCHEDULE_EDF:
+		break;
+	default:
+		assert(0);
 	}
 
 	set_timer(&sched_timer, balance_timeout, balance_queues, 0);
