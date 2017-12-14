@@ -513,9 +513,11 @@ int lottery_scheduling(void)
 		if ((rmp->flags & IN_USE)) {
             if (rmp->priority == MIN_USER_Q) {
                 total += rmp->lottery_num;
+				printf("%d ", rmp->endpoint);
             }
 		}
 	}
+	printf("\n");
 	if (!total) {
 		printf("lottery total: %d\n", total);
 		return OK;
