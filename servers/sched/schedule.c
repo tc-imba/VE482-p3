@@ -15,7 +15,7 @@
 #include <minix/com.h>
 #include <machine/archtypes.h>
 #include "kernel/proc.h" /* for queue constants */
-#include "kernel/kernel.h"
+#include "kernel/proto.h"
 
 #define SCHEDULE_DEFAULT 0
 #define SCHEDULE_LOTTERY 1
