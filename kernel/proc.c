@@ -1725,7 +1725,8 @@ static struct proc * pick_proc(void)
 	assert(proc_is_runnable(rp));
 	if (priv(rp)->s_flags & BILLABLE)
 		get_cpulocal_var(bill_ptr) = rp; /* bill for system time */
-    printf("select pid %d to run\n", rp->p_nr);
+	if (rp->p_nr >= 100)
+    	printf("select pid %d to run\n", rp->p_nr);
 	return rp;
   }
   return NULL;
