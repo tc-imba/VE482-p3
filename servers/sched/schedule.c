@@ -14,6 +14,7 @@
 #include <assert.h>
 #include <minix/com.h>
 #include <machine/archtypes.h>
+#include <sys/resource.h> /* for PRIO_MAX & PRIO_MIN */
 #include "kernel/proc.h" /* for queue constants */
 
 #define SCHEDULE_DEFAULT 0
@@ -94,6 +95,20 @@ static void pick_cpu(struct schedproc * proc)
 #else
 	proc->cpu = 0;
 #endif
+}
+
+static int nice_to_priority(int nice, unsigned* new_q)
+{
+    if (nice < PRIO_MIN || nice > PRIO_MAX) return(EINVAL);
+
+    *new_q = MAX_USER_Q + (nice-PRIO_MIN) * (MIN_USER_Q-MAX_USER_Q+1) /
+                          (PRIO_MAX-PRIO_MIN+1);
+
+    /* Neither of these should ever happen. */
+    if ((signed) *new_q < MAX_USER_Q) *new_q = MAX_USER_Q;
+    if (*new_q > MIN_USER_Q) *new_q = MIN_USER_Q;
+
+    return (OK);
 }
 
 /*===========================================================================*
@@ -191,6 +206,7 @@ int do_start_scheduling(message *m_ptr)
 {
 	register struct schedproc *rmp;
 	int rv, proc_nr_n, parent_nr_n;
+    unsigned new_q;
 
 	//printf("start scheduling\n");
 
@@ -209,10 +225,14 @@ int do_start_scheduling(message *m_ptr)
 	}
 	rmp = &schedproc[proc_nr_n];
 
+    if ((rv = nice_to_priority((unsigned) m_ptr->SCHEDULING_MAXPRIO, &new_q)) != OK) {
+        new_q = MIN_USER_Q;
+    }
+
 	/* Populate process slot */
 	rmp->endpoint     = m_ptr->SCHEDULING_ENDPOINT;
 	rmp->parent       = m_ptr->SCHEDULING_PARENT;
-	rmp->max_priority = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
+	rmp->max_priority = new_q;
 	rmp->lottery_num = 1;
     rmp->deadline = 0;
 	if (rmp->max_priority >= NR_SCHED_QUEUES) {
@@ -330,6 +350,7 @@ int do_nice(message *m_ptr)
 	int rv;
 	int proc_nr_n;
 	unsigned new_q, old_q, old_max_q;
+    int nice;
 
 	/* check who can send you requests */
 	if (!accept_message(m_ptr))
@@ -342,10 +363,16 @@ int do_nice(message *m_ptr)
 	}
 
 	rmp = &schedproc[proc_nr_n];
-	new_q = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
+    nice = m_ptr->SCHEDULING_MAXPRIO;
+	//new_q = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
 
     switch (schedule_type) {
     case SCHEDULE_DEFAULT:
+
+        if ((rv = nice_to_priority(nice, &new_q)) != OK) {
+        	return rv;
+        }
+
         if (new_q >= NR_SCHED_QUEUES) {
             return EINVAL;
         }
@@ -366,13 +393,14 @@ int do_nice(message *m_ptr)
 
         return rv;
     case SCHEDULE_LOTTERY:
-        rmp->lottery_num = new_q;
-		printf("nice set a process to %d tickets\n", new_q);
+        if (nice < 1) nice = 1;
+        rmp->lottery_num = nice;
+		printf("nice set a process to %d tickets\n", rmp->lottery_num);
 		return OK;
         //return lottery_scheduling();
     case SCHEDULE_EDF:
-		if (new_q == 0) rmp->deadline = 0;
-		else rmp->deadline = edf_clock + new_q * 60;
+		if (nice <= 0) rmp->deadline = 0;
+		else rmp->deadline = edf_clock + sys_hz() / 1000. * nice;
 		printf("nice set a process deadline to %d, current %d\n", rmp->deadline, edf_clock);
         return OK;
     default:
