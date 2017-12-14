@@ -15,6 +15,7 @@
 #include <minix/com.h>
 #include <machine/archtypes.h>
 #include "kernel/proc.h" /* for queue constants */
+#include "kernel/kernel.h"
 
 #define SCHEDULE_DEFAULT 0
 #define SCHEDULE_LOTTERY 1
@@ -497,7 +498,7 @@ int lottery_scheduling(void)
 int edf_scheduling(void)
 {
     struct schedproc *rmp, *min_rmp;
-    cloct_t min_deadline;
+    clock_t min_deadline;
     int i;
 
     /* get earliest deadline */
