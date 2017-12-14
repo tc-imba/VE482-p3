@@ -439,10 +439,14 @@ int lottery_scheduling(void)
 	/* get total tickets available now */
 	total = 0;
 	for (i = 0, rmp = schedproc; i < NR_PROCS; ++i, ++rmp) {
-		if ((rmp->flags & IN_USE) && rmp->priority == MIN_USER_Q) {
-			total += rmp->lottery_num;
+		if ((rmp->flags & IN_USE)) {
+            printf("%d=%d ", i, rmp->priority);
+            if (rmp->priority == MIN_USER_Q) {
+                total += rmp->lottery_num;
+            }
 		}
 	}
+    printf("\n");
 	if (!total) {
 		printf("lottery total: %d\n", total);
 		return OK;
