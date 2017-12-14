@@ -38,9 +38,7 @@ EXTERN struct schedproc {
 	/* lottery schedule */
 	unsigned lottery_num;
 	/* edf schedule */
-	time_t start_time;
-	int deadline;
-
+	clock_t deadline;
 } schedproc[NR_PROCS];
 
 /* Flag values */

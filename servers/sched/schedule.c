@@ -19,7 +19,7 @@
 #define SCHEDULE_DEFAULT 0
 #define SCHEDULE_LOTTERY 1
 #define SCHEDULE_EDF     2
-static int schedule_type = SCHEDULE_LOTTERY;
+static int schedule_type = SCHEDULE_DEFAULT;
 
 static timer_t sched_timer;
 static unsigned balance_timeout;
@@ -126,6 +126,15 @@ int do_noquantum(message *m_ptr)
 			return rv;
 		}
 		return lottery_scheduling();
+    case SCHEDULE_EDF:
+		if(rmp->priority >= MAX_USER_Q && rmp->priority <= MIN_USER_Q)
+		{
+			rmp->priority = MIN_USER_Q;
+		}
+		if ((rv = schedule_process_local(rmp)) != OK) {
+			return rv;
+		}
+		return edf_scheduling();
 	default:
 		assert(0);
 	}
@@ -162,6 +171,8 @@ int do_stop_scheduling(message *m_ptr)
 		return OK;
 	case SCHEDULE_LOTTERY:
 		return lottery_scheduling();
+    case SCHEDULE_EDF:
+        return edf_scheduling();
 	default:
 		assert(0);
 	}
@@ -197,8 +208,7 @@ int do_start_scheduling(message *m_ptr)
 	rmp->parent       = m_ptr->SCHEDULING_PARENT;
 	rmp->max_priority = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
 	rmp->lottery_num = 1;
-    rmp->start_time = time(0);
-    rmp->deadline = -1;
+    rmp->deadline = 0;
 	if (rmp->max_priority >= NR_SCHED_QUEUES) {
 		return EINVAL;
 	}
@@ -235,6 +245,7 @@ int do_start_scheduling(message *m_ptr)
             rmp->priority = rmp->max_priority;
             break;
         case SCHEDULE_LOTTERY:
+        case SCHEDULE_EDF:
             rmp->priority = MIN_USER_Q;
             break;
         default:
@@ -255,6 +266,7 @@ int do_start_scheduling(message *m_ptr)
             rmp->priority = schedproc[parent_nr_n].priority;
             break;
         case SCHEDULE_LOTTERY:
+        case SCHEDULE_EDF:
             rmp->priority = MIN_USER_Q;
             break;
         default:
@@ -352,6 +364,10 @@ int do_nice(message *m_ptr)
 		printf("nice set a process to %d tickets\n", new_q);
 		return OK;
         //return lottery_scheduling();
+    case SCHEDULE_EDF:
+		rmp->deadline = get_uptime() + new_q * 60;
+		printf("nice set a process deadline to %d\n", rmp->deadline);
+        return OK;
     default:
         assert(0);
     }
@@ -401,7 +417,6 @@ void init_scheduling(void)
 	balance_timeout = BALANCE_TIMEOUT * sys_hz();
 	init_timer(&sched_timer);
 	set_timer(&sched_timer, balance_timeout, balance_queues, 0);
-	//srandom(time(0));
 }
 
 /*===========================================================================*
@@ -451,13 +466,11 @@ int lottery_scheduling(void)
 	total = 0;
 	for (i = 0, rmp = schedproc; i < NR_PROCS; ++i, ++rmp) {
 		if ((rmp->flags & IN_USE)) {
-            //printf("%d=%d ", i, rmp->priority);
             if (rmp->priority == MIN_USER_Q) {
                 total += rmp->lottery_num;
             }
 		}
 	}
-    //printf("\n");
 	if (!total) {
 		printf("lottery total: %d\n", total);
 		return OK;
@@ -478,6 +491,37 @@ int lottery_scheduling(void)
 	}
 
 	/* should be not reachable */
+	return OK;
+}
+
+void edf_scheduling(void)
+{
+    struct schedproc *rmp, *min_rmp;
+    cloct_t min_deadline;
+    int i;
+
+    /* get earliest deadline */
+	min_deadline = 0;
+	min_rmp = 0;
+    for (i = 0, rmp = schedproc; i < NR_PROCS; ++i, ++rmp) {
+        if ((rmp->flags & IN_USE)) {
+            if (rmp->priority == MIN_USER_Q) {
+				if (!min_rmp || (rmp->deadline && rmp->deadline < min_deadline)) {
+					min_deadline = rmp->deadline;
+					min_rmp = rmp;
+				}
+            }
+        }
+    }
+    if (!min_rmp) {
+		printf("earliest deadline not found\n");
+        return OK;
+    }
+
+    /* give the priority */
+	printf("earliest deadline: %d\n", min_deadline);
+	min_rmp->priority = USER_Q;
+	schedule_process_local(min_rmp);
 	return OK;
 }
 
