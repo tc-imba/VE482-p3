@@ -348,7 +348,8 @@ int do_nice(message *m_ptr)
     case SCHEDULE_LOTTERY:
         rmp->lottery_num = new_q;
 		printf("nice set a process to %d tickets\n", new_q);
-        return lottery_scheduling();
+		return OK;
+        //return lottery_scheduling();
     default:
         assert(0);
     }
