@@ -494,7 +494,7 @@ int lottery_scheduling(void)
 	return OK;
 }
 
-void edf_scheduling(void)
+int edf_scheduling(void)
 {
     struct schedproc *rmp, *min_rmp;
     cloct_t min_deadline;
