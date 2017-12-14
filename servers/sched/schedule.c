@@ -400,7 +400,7 @@ int do_nice(message *m_ptr)
         //return lottery_scheduling();
     case SCHEDULE_EDF:
 		if (nice <= 0) rmp->deadline = 0;
-		else rmp->deadline = edf_clock + sys_hz() / 1000. * nice;
+		else rmp->deadline = edf_clock + (double) sys_hz() / 1000. * (double) nice;
 		printf("nice set a process deadline to %d, current %d\n", rmp->deadline, edf_clock);
         return OK;
     default:
@@ -523,13 +523,13 @@ int lottery_scheduling(void)
 
 	/* choose a lucky ticket and give the priority */
 	ticket = random() % total;
-	printf("lottery ticket: %d, total: %d\n", ticket, total);
 	now = 0;
 	for (i = 0, rmp = schedproc; i < NR_PROCS; ++i, ++rmp) {
 		if ((rmp->flags & IN_USE) && rmp->priority == MIN_USER_Q) {
 			if ((now += rmp->lottery_num) >= ticket) {
 				rmp->priority = USER_Q;
-				schedule_process_local(rmp);
+                printf("lottery ticket: %d, total: %d, endpoint: %d\n", ticket, total, rmp->endpoint);
+                schedule_process_local(rmp);
 				return OK;
 			}
 		}
