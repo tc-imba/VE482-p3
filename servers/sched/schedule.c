@@ -454,7 +454,7 @@ int lottery_scheduling(void)
 	for (i = 0, rmp = schedproc; i < NR_PROCS; ++i, ++rmp) {
 		if ((rmp->flags & IN_USE) && rmp->priority == MIN_USER_Q) {
 			if ((now += rmp->lottery_num) >= ticket) {
-				rmp->priority = MIN_USER_Q;
+				rmp->priority = USER_Q;
 				schedule_process_local(rmp);
 				return OK;
 			}

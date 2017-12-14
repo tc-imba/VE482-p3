@@ -107,7 +107,6 @@ void sigaction_dmp()
 void schedule_switch(void)
 {
 	message m;
-	printf("Shift+F7\n");
 	_taskcall(SCHED_PROC_NR, SCHEDULING_SWITCH_TYPE, &m);
 }
 
