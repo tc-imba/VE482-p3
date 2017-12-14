@@ -4,6 +4,7 @@
 #include <limits.h>
 
 #include <minix/bitmap.h>
+#include <time.h>
 
 /* EXTERN should be extern except in main.c, where we want to keep the struct */
 #ifdef _MAIN
@@ -36,6 +37,9 @@ EXTERN struct schedproc {
 
 	/* lottery schedule */
 	unsigned lottery_num;
+	/* edf schedule */
+	time_t start_time;
+	int deadline;
 
 } schedproc[NR_PROCS];
 

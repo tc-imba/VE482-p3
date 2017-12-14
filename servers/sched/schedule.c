@@ -197,6 +197,8 @@ int do_start_scheduling(message *m_ptr)
 	rmp->parent       = m_ptr->SCHEDULING_PARENT;
 	rmp->max_priority = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
 	rmp->lottery_num = 1;
+    rmp->start_time = time(0);
+    rmp->deadline = -1;
 	if (rmp->max_priority >= NR_SCHED_QUEUES) {
 		return EINVAL;
 	}
@@ -449,13 +451,13 @@ int lottery_scheduling(void)
 	total = 0;
 	for (i = 0, rmp = schedproc; i < NR_PROCS; ++i, ++rmp) {
 		if ((rmp->flags & IN_USE)) {
-            printf("%d=%d ", i, rmp->priority);
+            //printf("%d=%d ", i, rmp->priority);
             if (rmp->priority == MIN_USER_Q) {
                 total += rmp->lottery_num;
             }
 		}
 	}
-    printf("\n");
+    //printf("\n");
 	if (!total) {
 		printf("lottery total: %d\n", total);
 		return OK;
