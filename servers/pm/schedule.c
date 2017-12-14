@@ -79,7 +79,7 @@ int sched_start_user(endpoint_t ep, struct mproc *rmp)
 	return sched_inherit(ep, 			/* scheduler_e */
 		rmp->mp_endpoint, 			/* schedulee_e */
 		inherit_from, 				/* parent_e */
-		rmp->mp_nice, 				/* maxprio */
+		rmp->mp_nice < 0 ? 0 : rmp->mp_nice, 				/* maxprio */
 		&rmp->mp_scheduler);			/* *newsched_e */
 }
 

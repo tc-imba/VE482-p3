@@ -225,7 +225,7 @@ int do_start_scheduling(message *m_ptr)
 	}
 	rmp = &schedproc[proc_nr_n];
 
-    if ((rv = nice_to_priority((unsigned) m_ptr->SCHEDULING_MAXPRIO, &new_q)) != OK) {
+    if ((rv = nice_to_priority(m_ptr->SCHEDULING_MAXPRIO, &new_q)) != OK) {
         new_q = MIN_USER_Q;
     }
 
