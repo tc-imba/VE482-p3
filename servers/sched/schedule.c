@@ -371,8 +371,9 @@ int do_nice(message *m_ptr)
 		return OK;
         //return lottery_scheduling();
     case SCHEDULE_EDF:
-		rmp->deadline = edf_clock + new_q * 60;
-		printf("nice set a process deadline to %d\n", rmp->deadline);
+		if (new_q == 0) rmp->deadline = 0;
+		else rmp->deadline = edf_clock + new_q * 60;
+		printf("nice set a process deadline to %d, current %d\n", rmp->deadline, edf_clock);
         return OK;
     default:
         assert(0);
