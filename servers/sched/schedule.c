@@ -15,7 +15,6 @@
 #include <minix/com.h>
 #include <machine/archtypes.h>
 #include "kernel/proc.h" /* for queue constants */
-#include "kernel/proto.h"
 
 #define SCHEDULE_DEFAULT 0
 #define SCHEDULE_LOTTERY 1
@@ -29,6 +28,12 @@ static unsigned balance_timeout;
 
 static int schedule_process(struct schedproc * rmp, unsigned flags);
 static void balance_queues(struct timer *tp);
+
+static timer_t edf_timer;
+static unsigned edf_timeout;
+static clock_t edf_clock;
+
+static void set_edf_timer(struct timer *tp);
 
 #define SCHEDULE_CHANGE_PRIO	0x1
 #define SCHEDULE_CHANGE_QUANTUM	0x2
@@ -366,7 +371,7 @@ int do_nice(message *m_ptr)
 		return OK;
         //return lottery_scheduling();
     case SCHEDULE_EDF:
-		rmp->deadline = get_uptime() + new_q * 60;
+		rmp->deadline = edf_clock + new_q * 60;
 		printf("nice set a process deadline to %d\n", rmp->deadline);
         return OK;
     default:
@@ -418,6 +423,16 @@ void init_scheduling(void)
 	balance_timeout = BALANCE_TIMEOUT * sys_hz();
 	init_timer(&sched_timer);
 	set_timer(&sched_timer, balance_timeout, balance_queues, 0);
+	edf_clock = 0;
+	edf_timeout = sys_hz() / 10;
+	init_timer(&edf_timer);
+	set_timer(&edf_timer, edf_timeout, set_edf_timer, 0);
+}
+
+static void set_edf_timer(struct timer *tp)
+{
+	edf_clock += edf_timeout;
+	set_timer(&edf_timer, edf_timeout, set_edf_timer, 0);
 }
 
 /*===========================================================================*
